@@ -20,14 +20,18 @@
 |   |   +------+ +------+   |   |   GitBranchBadge[]      |   | |
 |   |   |Term 1| |Term 2|   |   +-------------------------+   | |
 |   |   |Pane  | |Pane  |   |                                  | |
+|   |   |Search| |      |   |                                  | |
 |   |   +------+ +------+   |                                  | |
 |   |   SplitHandle (drag)   |                                  | |
 |   +------------------------+----------------------------------+ |
 |                                                                |
-|   CommitOverlay (modal, z-index 1000)                          |
-|   +----------------------------------------------------------+ |
-|   | FileTree (left)  |  DiffView (right, unified diff)       | |
-|   +----------------------------------------------------------+ |
+|   Overlays (portals on document.body, z-index 1000):           |
+|   - CommitOverlay       (commit detail: file tree + diff)      |
+|   - LocalChangesOverlay (working tree: file tree + diff/edit)  |
+|   - SettingsOverlay     (theme grid + custom theme editor)     |
+|   - ShortcutsOverlay    (keyboard shortcut reference)          |
+|   - MarkdownPreview     (rendered markdown with edit mode)     |
+|   - WelcomeScreen       (ASCII art splash, auto-fades)         |
 |                                                                |
 +---------------------------------------------------------------+
         |                                          |
@@ -43,9 +47,14 @@
 |   |                        |  |  git diff-tree              |  |
 |   | PtySession             |  |  git show (unified diff)    |  |
 |   |  portable_pty spawn    |  |  git rev-parse              |  |
-|   |  reader thread (I/O)   |  +-----------------------------+  |
-|   |  shell integration     |                                   |
+|   |  reader thread (I/O)   |  |  working tree diff          |  |
+|   |  shell integration     |  +-----------------------------+  |
 |   +------------------------+                                   |
+|   +-------------------------------+                            |
+|   | Filesystem Commands           |                            |
+|   |  read_file / write_file       |                            |
+|   |  list_dir                     |                            |
+|   +-------------------------------+                            |
 |        |                                                       |
 +--------|-------------------------------------------------------+
          |
@@ -72,41 +81,89 @@ terminal-plus/
 │   │   ├── layout/
 │   │   │   ├── TileContainer.tsx           # Recursive tile renderer
 │   │   │   ├── SplitHandle.tsx             # Draggable resize divider
-│   │   │   └── TabBar.tsx                  # Window controls + tabs
+│   │   │   └── TabBar.tsx                  # Window controls + tabs + action buttons
 │   │   ├── terminal/
-│   │   │   ├── TerminalPane.tsx            # Terminal wrapper
-│   │   │   ├── TerminalHeader.tsx          # Per-pane title bar
-│   │   │   └── useTerminal.ts              # xterm.js + PTY bridge
-│   │   └── git/
-│   │       ├── GitPanel.tsx                # Sidebar panel
-│   │       ├── GitGraph.tsx                # SVG branch graph
-│   │       ├── GitCommitRow.tsx            # Clickable commit row
-│   │       ├── GitBranchBadge.tsx          # Branch/tag badge
-│   │       ├── CommitOverlay.tsx           # Commit detail modal
-│   │       ├── FileTree.tsx                # Hierarchical file browser
-│   │       └── DiffView.tsx                # Unified diff renderer
+│   │   │   ├── TerminalPane.tsx            # Terminal wrapper (header + body + search)
+│   │   │   ├── TerminalHeader.tsx          # Per-pane title bar + close button
+│   │   │   ├── SearchBar.tsx              # In-pane search (regex, case-sensitive, match count)
+│   │   │   └── useTerminal.ts              # xterm.js + PTY bridge + link providers
+│   │   ├── git/
+│   │   │   ├── GitPanel.tsx                # Sidebar panel (search, refresh, commit list)
+│   │   │   ├── GitGraph.tsx                # SVG branch graph
+│   │   │   ├── GitCommitRow.tsx            # Clickable commit row
+│   │   │   ├── GitBranchBadge.tsx          # Branch/tag badge
+│   │   │   ├── CommitOverlay.tsx           # Commit detail modal (file tree + diff)
+│   │   │   ├── LocalChangesOverlay.tsx     # Working tree changes (diff + inline editor)
+│   │   │   ├── FileTree.tsx                # Hierarchical file browser
+│   │   │   └── DiffView.tsx                # Unified diff renderer
+│   │   ├── settings/
+│   │   │   ├── SettingsOverlay.tsx          # Theme picker modal
+│   │   │   ├── ThemeGrid.tsx               # Grid of theme cards (select/edit/delete)
+│   │   │   └── CustomThemeEditor.tsx        # Color picker form for custom themes
+│   │   ├── shortcuts/
+│   │   │   └── ShortcutsOverlay.tsx         # Keyboard shortcut reference modal
+│   │   ├── markdown/
+│   │   │   └── MarkdownPreview.tsx          # Markdown preview/edit modal
+│   │   └── WelcomeScreen.tsx                # ASCII art splash (auto-fades after 1.5s)
 │   │
 │   ├── stores/
-│   │   ├── tileStore.ts                    # Tile tree state (Zustand)
-│   │   ├── terminalStore.ts                # Session registry
-│   │   └── gitStore.ts                     # Git panel state
+│   │   ├── tileStore.ts                    # Tile tree state (Zustand + immer)
+│   │   ├── terminalStore.ts                # Session registry + search state
+│   │   ├── gitStore.ts                     # Git panel + overlay state
+│   │   ├── themeStore.ts                   # Theme selection + custom themes (persisted)
+│   │   └── markdownStore.ts                # Markdown preview state
 │   │
 │   ├── lib/
-│   │   ├── ipc.ts                          # Typed Tauri IPC wrappers
+│   │   ├── ipc.ts                          # Typed Tauri IPC wrappers (all 13 commands)
 │   │   ├── tileTree.ts                     # Pure tree algorithms
-│   │   ├── keybindings.ts                  # Keyboard shortcut system
-│   │   └── gitGraphLayout.ts               # Lane assignment algorithm
+│   │   ├── keybindings.ts                  # Keyboard shortcut system (7 bindings)
+│   │   ├── gitGraphLayout.ts               # Lane assignment algorithm
+│   │   ├── themes.ts                       # Built-in theme definitions (4 themes)
+│   │   ├── themeApplicator.ts              # Applies theme to CSS vars + xterm instances
+│   │   ├── terminalRegistry.ts             # Module-level Map of live terminal instances
+│   │   ├── editorActions.ts                # Text manipulation for inline code editor
+│   │   └── highlight.ts                    # highlight.js wrapper for syntax highlighting
 │   │
 │   ├── types/
 │   │   ├── tile.ts                         # TileNode, TileSplit, TileLeaf
 │   │   ├── terminal.ts                     # TerminalSession
-│   │   └── git.ts                          # GitCommit, FileDiff, etc.
+│   │   ├── git.ts                          # GitCommit, FileDiff, FileTreeNode, etc.
+│   │   └── theme.ts                        # Theme, ThemeColors (50+ color fields)
 │   │
 │   └── styles/
-│       ├── variables.css                   # Midnight Indigo theme
+│       ├── variables.css                   # CSS custom properties (set dynamically by theme)
 │       ├── terminal.css                    # Terminal pane styles
 │       ├── tiling.css                      # Tile layout + tab bar
-│       └── git-panel.css                   # Git panel + overlay + diff
+│       ├── git-panel.css                   # Git panel + commit overlay + diff
+│       ├── settings.css                    # Settings + shortcuts overlays
+│       ├── search.css                      # Terminal search bar
+│       ├── highlight.css                   # highlight.js token → CSS variable mappings
+│       └── markdown.css                    # Markdown preview overlay
+│
+├── e2e/                                    # E2E Tests (Playwright + Cucumber BDD)
+│   ├── cucumber.js                         # Cucumber runner config
+│   ├── tsconfig.json                       # TypeScript config for e2e (ESNext)
+│   ├── features/                           # Gherkin feature files (5)
+│   │   ├── tiling.feature                  # Pane split, resize, close, focus
+│   │   ├── themes.feature                  # Switch, create, edit, delete themes
+│   │   ├── shortcuts.feature               # Overlay display, keybinding triggers
+│   │   ├── git-panel.feature               # Toggle, search, select commit, error state
+│   │   └── terminal-io.feature             # PTY output, search bar
+│   ├── steps/                              # Step definitions (6)
+│   │   ├── common.steps.ts                 # Shared: app open, button clicks, key presses
+│   │   ├── tiling.steps.ts
+│   │   ├── themes.steps.ts
+│   │   ├── shortcuts.steps.ts
+│   │   ├── git-panel.steps.ts
+│   │   └── terminal-io.steps.ts
+│   └── support/
+│       ├── world.ts                        # Custom World class with Playwright page
+│       ├── hooks.ts                        # BeforeAll/AfterAll (browser), Before/After (context)
+│       ├── tauri-mock.ts                   # Tauri IPC mock (injected via addInitScript)
+│       ├── selectors.ts                    # Centralized CSS selectors (67 entries)
+│       └── fixtures/
+│           ├── git-log.ts                  # Mock GitLogResult
+│           └── git-diff.ts                 # Mock CommitFile[] and FileDiff
 │
 └── src-tauri/                              # Rust Backend
     ├── Cargo.toml
@@ -114,7 +171,8 @@ terminal-plus/
     ├── capabilities/default.json
     └── src/
         ├── main.rs                         # Entry point
-        ├── lib.rs                          # Tauri builder + command registry
+        ├── lib.rs                          # Tauri builder + command registry (13 commands)
+        ├── commands.rs                     # Filesystem commands (read/write/list_dir)
         ├── pty/
         │   ├── mod.rs
         │   ├── session.rs                  # PtySession: spawn, I/O, cwd
@@ -127,7 +185,7 @@ terminal-plus/
             ├── types.rs                    # GitCommit, DiffHunk, etc.
             ├── log.rs                      # git log parser
             ├── diff.rs                     # git diff/show parser
-            └── commands.rs                 # 4 Tauri commands (git_*)
+            └── commands.rs                 # 6 Tauri commands (git_*)
 ```
 
 ## Component Tree
@@ -137,6 +195,11 @@ graph TD
     App --> TabBar
     App --> AppContent["app__content (flex row)"]
     App --> CommitOverlay
+    App --> LocalChangesOverlay
+    App --> SettingsOverlay
+    App --> ShortcutsOverlay
+    App --> MarkdownPreview
+    App --> WelcomeScreen
 
     AppContent --> Terminals["app__terminals"]
     AppContent --> GitPanel
@@ -148,7 +211,8 @@ graph TD
     TileContainer -->|split| TileContainer
 
     TerminalPane --> TerminalHeader
-    TerminalPane --> useTerminal["useTerminal hook<br/>(xterm.js + PTY bridge)"]
+    TerminalPane --> SearchBar
+    TerminalPane --> useTerminal["useTerminal hook<br/>(xterm.js + PTY bridge<br/>+ .md link provider<br/>+ dir link provider)"]
 
     GitPanel --> GitGraph["GitGraph (SVG)"]
     GitPanel --> GitCommitRow
@@ -156,9 +220,18 @@ graph TD
 
     CommitOverlay --> FileTree
     CommitOverlay --> DiffView
+
+    LocalChangesOverlay --> FileTree2["FileTree"]
+    LocalChangesOverlay --> DiffView2["DiffView / HighlightedEditor"]
+
+    SettingsOverlay --> ThemeGrid
+    SettingsOverlay --> CustomThemeEditor
+    ThemeGrid --> ThemeCard["ThemeCard[]"]
 ```
 
 ## State Management (Zustand)
+
+All stores use immer middleware for immutable updates.
 
 ```mermaid
 graph LR
@@ -174,20 +247,48 @@ graph LR
 
     subgraph terminalStore
         sessions["sessions: Record&lt;id, Session&gt;"]
+        searchActiveSessionId["searchActiveSessionId"]
         addSession["addSession()"]
         removeSession["removeSession()"]
         updateTitle["updateTitle()"]
+        toggleSearch["toggleSearch()"]
+        closeSearch["closeSearch()"]
     end
 
     subgraph gitStore
         isOpen["isOpen"]
+        loading["loading"]
+        error["error"]
         logResult["logResult: GitLogResult"]
+        cwd["cwd"]
         selectedCommit["selectedCommit"]
+        localChangesOpen["localChangesOpen"]
+        toggle["toggle()"]
         selectCommit["selectCommit()"]
         clearSelectedCommit["clearSelectedCommit()"]
-        toggle["toggle()"]
+        openLocalChanges["openLocalChanges()"]
+        closeLocalChanges["closeLocalChanges()"]
+    end
+
+    subgraph themeStore ["themeStore (persisted to localStorage)"]
+        currentThemeId["currentThemeId"]
+        customThemes["customThemes: Theme[]"]
+        _currentTheme["_currentTheme (cached)"]
+        _allThemes["_allThemes (cached)"]
+        setTheme["setTheme()"]
+        addCustomTheme["addCustomTheme()"]
+        updateCustomTheme["updateCustomTheme()"]
+        deleteCustomTheme["deleteCustomTheme()"]
+    end
+
+    subgraph markdownStore
+        previewPath["previewPath: string | null"]
+        openPreview["openPreview()"]
+        closePreview["closePreview()"]
     end
 ```
+
+**Note on themeStore caching:** `_currentTheme` and `_allThemes` are derived values recomputed inside every `set()` call. This avoids Zustand selector reference churn — never call functions that return new references inside selectors (see `useSyncExternalStore` pitfall).
 
 ## Tile Tree (Binary Tree Layout)
 
@@ -313,6 +414,57 @@ sequenceDiagram
     Rust-->>Overlay: FileDiff
 ```
 
+### Local Changes Overlay
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Panel as GitPanel
+    participant Overlay as LocalChangesOverlay
+    participant IPC as Tauri IPC
+
+    User->>Panel: click "Local Changes" button
+    Panel->>Panel: openLocalChanges()
+
+    Overlay->>IPC: gitLocalChanges(cwd)
+    IPC-->>Overlay: CommitFile[]
+
+    Note over Overlay: buildFileTree() +<br/>auto-select first file
+
+    Overlay->>IPC: gitLocalFileDiff(cwd, path)
+    IPC-->>Overlay: FileDiff (hunks + lines)
+
+    Overlay->>Overlay: render FileTree + DiffView
+
+    User->>Overlay: toggle to "Edit" mode
+    Overlay->>IPC: readFile(absolutePath)
+    IPC-->>Overlay: file contents
+
+    Note over Overlay: HighlightedEditor<br/>with syntax highlighting
+
+    User->>Overlay: Cmd+S
+    Overlay->>IPC: writeFile(path, contents)
+```
+
+### Theme Application
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Settings as SettingsOverlay
+    participant Store as themeStore
+    participant Applicator as themeApplicator
+    participant DOM as document :root
+    participant XTerm as xterm.js instances
+
+    User->>Settings: click theme card
+    Settings->>Store: setTheme(id)
+    Store->>Store: update _currentTheme cache
+    Store->>Applicator: applyTheme(theme)
+    Applicator->>DOM: set CSS custom properties
+    Applicator->>XTerm: update theme on all<br/>live terminal instances
+```
+
 ## Tauri IPC Commands
 
 | Command | Module | Arguments | Returns |
@@ -326,6 +478,11 @@ sequenceDiagram
 | `git_is_repo` | git | cwd | `bool` |
 | `git_commit_files` | git | cwd, hash | `Vec<CommitFile>` |
 | `git_file_diff` | git | cwd, hash, path | `FileDiff` |
+| `git_local_changes` | git | cwd | `Vec<CommitFile>` |
+| `git_local_file_diff` | git | cwd, path | `FileDiff` |
+| `read_file` | commands | path | `String` |
+| `write_file` | commands | path, contents | `()` |
+| `list_dir` | commands | path | `Vec<DirEntry>` |
 
 ## Tauri Events
 
@@ -344,8 +501,9 @@ sequenceDiagram
 | `Cmd+Shift+]` | Focus next pane |
 | `Cmd+Shift+[` | Focus previous pane |
 | `Cmd+Shift+G` | Toggle git panel |
+| `Cmd+F` | Search terminal |
 
-Registered on `window` in capture phase to intercept before xterm.js.
+Registered on `window` in capture phase to intercept before xterm.js. The `ShortcutsOverlay` (opened via the "?" button in TabBar) lists all shortcuts via `getAllShortcuts()`.
 
 ## PTY Session Lifecycle
 
@@ -361,11 +519,14 @@ Mount TerminalPane
           → registers in PtyManager HashMap
 
 Session survives React remounts (module-level activePtys Set)
+Terminal instances tracked in terminalRegistry.ts Map
+  → { term: Terminal, fitAddon: FitAddon, searchAddon: SearchAddon }
 
 Explicit close only:
   closePane() → destroyPtySession(sessionId)
     → ptyDestroy(sessionId)
       → Rust: removes from PtyManager, drops session
+    → term.dispose() + remove from terminalInstances
 ```
 
 ## Shell Integration
@@ -389,6 +550,14 @@ Bash:
     - color environment variables
 ```
 
+## Terminal Link Providers
+
+`useTerminal.ts` registers two custom xterm.js link providers:
+
+1. **Markdown file links** — matches paths ending in `.md` in terminal output. Clicking resolves the path via `ptyGetCwd` and opens `MarkdownPreview` via `markdownStore.openPreview()`.
+
+2. **Directory links** — calls `listDir(cwd)` to discover real directory names, then makes them clickable in terminal output. Clicking runs `cd <dir> && ls\n` via `ptyWrite`.
+
 ## Git Graph Layout Algorithm
 
 ```
@@ -409,22 +578,53 @@ SVG rendering (GitGraph.tsx):
   - Circle at (lane * spacing, row * rowHeight) per commit
   - Straight lines for same-lane connections
   - Bezier curves for cross-lane merges
-  - 8 lane colors cycling
+  - 8 lane colors cycling (theme-aware via themeApplicator)
 ```
 
-## Theme
+## Theme System
 
-Midnight Indigo palette with 20% window transparency:
+The theme system supports 4 built-in themes and unlimited custom themes:
 
-| Variable | Value | Usage |
-|----------|-------|-------|
-| `--bg-primary` | `rgba(10, 8, 36, 0.80)` | Terminal background |
-| `--bg-secondary` | `rgba(16, 13, 56, 0.85)` | Panels, tab bar |
-| `--bg-elevated` | `rgba(26, 22, 78, 0.85)` | Hover states |
-| `--accent-blue` | `#3318E8` | Electric blue accent |
-| `--accent-purple` | `#8B7DFF` | Hashes, hunk headers |
-| `--accent-mint` | `#C8F5DC` | Mint green (added lines) |
-| `--accent-red` | `#FF6B8A` | Removed lines, errors |
-| `--fg-primary` | `#E8E6F0` | Primary text |
+| Theme | Mode | Description |
+|-------|------|-------------|
+| Midnight Indigo | dark | Deep indigo with electric blue accents (default) |
+| Dawn Light | light | Warm light theme with soft colors |
+| Obsidian | dark | True black with high-contrast text |
+| Aurora | dark | Northern lights inspired with gradient accents |
+
+**How it works:**
+- Built-in themes defined in `lib/themes.ts` as `Theme` objects with 50+ color fields
+- `themeStore` (persisted to localStorage as `"terminal-plus-theme"`) tracks selection and custom themes
+- `themeApplicator.ts` applies a theme by setting CSS custom properties on `:root` and updating all live xterm.js instances via `terminalRegistry`
+- Custom themes are created/edited via `CustomThemeEditor` in the settings overlay
+- `ThemeColors` covers: backgrounds, foregrounds, accents, borders, full 16-color ANSI palette, git graph lane colors, git badge colors, diff coloring
 
 Window: `transparent: true`, `macOSPrivateApi: true`, `decorations: false` (custom traffic lights in TabBar).
+
+## Testing
+
+### Unit Tests (vitest + jsdom)
+
+```bash
+pnpm vitest run
+```
+
+- Framework: vitest + jsdom (v25) + @testing-library/react
+- Tauri/xterm mocks in `src/test/setup.ts`
+- Test files in `src/test/`, excluded from main `tsconfig.json`
+
+### E2E Tests (Playwright + Cucumber BDD)
+
+```bash
+pnpm e2e            # start Vite dev server + run all scenarios
+pnpm e2e:headed     # same, with visible browser (HEADED=1)
+pnpm e2e:run        # run scenarios only (server must be running)
+```
+
+- 5 feature files, 27 scenarios, 97 steps
+- Tests run against the Vite dev server (localhost:1420) with mocked Tauri IPC
+- Tauri IPC mock injected via `page.addInitScript()` — defines `window.__TAURI_INTERNALS__` with handlers for all 14 commands
+- Per-scenario tag overrides (e.g., `@git-not-repo`) for error state testing
+- Centralized CSS selectors in `e2e/support/selectors.ts` matching the app's BEM class names
+- HTML report at `e2e/reports/report.html`
+- Stack: Playwright (Chromium), @cucumber/cucumber, tsx (TypeScript loader)
