@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- macOS squircle clip path -->
+    <clipPath id="squircle">
+      <path d="
+        M512 0
+        C726 0 800 0 882 40
+        C930 64 960 94 984 142
+        C1024 224 1024 298 1024 512
+        C1024 726 1024 800 984 882
+        C960 930 930 960 882 984
+        C800 1024 726 1024 512 1024
+        C298 1024 224 1024 142 984
+        C94 960 64 930 40 882
+        C0 800 0 726 0 512
+        C0 298 0 224 40 142
+        C64 94 94 64 142 40
+        C224 0 298 0 512 0Z
+      "/>
+    </clipPath>
+
+    <!-- Neon glow filters -->
+    <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feFlood flood-color="#3318E8" flood-opacity="0.9"/>
+      <feComposite in2="blur" operator="in" result="colorBlur"/>
+      <feMerge>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="glow-mint" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feFlood flood-color="#C8F5DC" flood-opacity="0.8"/>
+      <feComposite in2="blur" operator="in" result="colorBlur"/>
+      <feMerge>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#8B7DFF" flood-opacity="0.7"/>
+      <feComposite in2="blur" operator="in" result="colorBlur"/>
+      <feMerge>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="glow-wide" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="40" result="blur"/>
+      <feFlood flood-color="#3318E8" flood-opacity="0.35"/>
+      <feComposite in2="blur" operator="in" result="colorBlur"/>
+      <feMerge>
+        <feMergeNode in="colorBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Background gradient -->
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D0B30"/>
+      <stop offset="50%" stop-color="#0A0824"/>
+      <stop offset="100%" stop-color="#06041A"/>
+    </linearGradient>
+
+    <!-- Subtle radial highlight -->
+    <radialGradient id="bg-highlight" cx="0.35" cy="0.3" r="0.7">
+      <stop offset="0%" stop-color="#1A1650" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0A0824" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Chevron gradient -->
+    <linearGradient id="chevron-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3318E8"/>
+      <stop offset="100%" stop-color="#8B7DFF"/>
+    </linearGradient>
+
+    <!-- Cursor gradient -->
+    <linearGradient id="cursor-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C8F5DC"/>
+      <stop offset="100%" stop-color="#7EEAAD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background with squircle clip -->
+  <g clip-path="url(#squircle)">
+    <!-- Base fill -->
+    <rect width="1024" height="1024" fill="url(#bg-grad)"/>
+    <!-- Highlight overlay -->
+    <rect width="1024" height="1024" fill="url(#bg-highlight)"/>
+
+    <!-- Subtle grid lines for terminal feel -->
+    <g opacity="0.03" stroke="#8B7DFF" stroke-width="1">
+      <line x1="0" y1="200" x2="1024" y2="200"/>
+      <line x1="0" y1="300" x2="1024" y2="300"/>
+      <line x1="0" y1="400" x2="1024" y2="400"/>
+      <line x1="0" y1="500" x2="1024" y2="500"/>
+      <line x1="0" y1="600" x2="1024" y2="600"/>
+      <line x1="0" y1="700" x2="1024" y2="700"/>
+      <line x1="0" y1="800" x2="1024" y2="800"/>
+    </g>
+
+    <!-- Ambient neon reflection on background -->
+    <ellipse cx="380" cy="520" rx="320" ry="200" fill="#3318E8" opacity="0.04"/>
+    <ellipse cx="620" cy="540" rx="200" ry="150" fill="#C8F5DC" opacity="0.03"/>
+
+    <!-- "> _" prompt — the main icon -->
+    <g transform="translate(512, 490)">
+
+      <!-- Wide ambient glow behind the whole prompt -->
+      <g filter="url(#glow-wide)" opacity="0.6">
+        <polyline
+          points="-220,-80 -60,40 -220,160"
+          fill="none"
+          stroke="#3318E8"
+          stroke-width="60"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </g>
+
+      <!-- Chevron ">" with neon blue-purple glow -->
+      <g filter="url(#glow-blue)">
+        <polyline
+          points="-220,-80 -60,40 -220,160"
+          fill="none"
+          stroke="url(#chevron-grad)"
+          stroke-width="58"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </g>
+
+      <!-- Bright core of chevron -->
+      <polyline
+        points="-220,-80 -60,40 -220,160"
+        fill="none"
+        stroke="#A89FFF"
+        stroke-width="20"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.5"
+      />
+
+      <!-- Underscore cursor "_" with neon mint glow -->
+      <g filter="url(#glow-mint)">
+        <rect
+          x="20" y="125"
+          width="200" height="42"
+          rx="6"
+          fill="url(#cursor-grad)"
+        />
+      </g>
+
+      <!-- Bright core of cursor -->
+      <rect
+        x="40" y="133"
+        width="160" height="26"
+        rx="4"
+        fill="#FFFFFF"
+        opacity="0.35"
+      />
+    </g>
+
+    <!-- Small decorative dots (like terminal status) -->
+    <g filter="url(#glow-purple)" opacity="0.5">
+      <circle cx="200" cy="220" r="6" fill="#8B7DFF"/>
+      <circle cx="230" cy="220" r="6" fill="#8B7DFF"/>
+      <circle cx="260" cy="220" r="6" fill="#8B7DFF"/>
+    </g>
+
+    <!-- Inner border / edge highlight -->
+    <path d="
+      M512 2
+      C726 2 798 2 880 42
+      C928 66 958 96 982 144
+      C1022 226 1022 298 1022 512
+      C1022 726 1022 798 982 880
+      C958 928 928 958 880 982
+      C798 1022 726 1022 512 1022
+      C298 1022 226 1022 144 982
+      C96 958 66 928 42 880
+      C2 798 2 726 2 512
+      C2 298 2 226 42 144
+      C66 96 96 66 144 42
+      C226 2 298 2 512 2Z
+    " fill="none" stroke="#8B7DFF" stroke-width="2" opacity="0.15"/>
+  </g>
+</svg>

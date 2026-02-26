@@ -1,0 +1,106 @@
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.terminal-pane--focused {
+  border-color: var(--border-focus);
+}
+
+.terminal-pane--drag-over {
+  border-color: var(--accent-mint);
+  border-style: dashed;
+}
+
+.terminal-pane__body {
+  flex: 1;
+  overflow: hidden;
+  padding: 2px;
+  background: var(--bg-primary);
+}
+
+.terminal-pane__body .xterm {
+  height: 100%;
+  padding: 4px;
+}
+
+/* Single global cursor blink animation so all panes stay in sync */
+@keyframes xterm-cursor-blink {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.terminal-pane--focused .xterm-cursor-block,
+.terminal-pane--focused .xterm-cursor-bar,
+.terminal-pane--focused .xterm-cursor-underline {
+  animation: xterm-cursor-blink 1s step-end infinite;
+}
+
+/* Terminal header */
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.terminal-header--focused {
+  background: var(--bg-elevated);
+}
+
+.terminal-header__title {
+  font-size: 11px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-header--focused .terminal-header__title {
+  color: var(--fg-secondary);
+}
+
+.terminal-header__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.terminal-header:hover .terminal-header__close {
+  opacity: 1;
+}
+
+.terminal-header__close:hover {
+  background: var(--accent-red);
+  color: var(--bg-primary-solid);
+}
+
+/* Directory icon decoration overlay (shown on hover) */
+.tp-dir-icon {
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.8;
+  transform: translate(-110%, 0);
+}
