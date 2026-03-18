@@ -187,7 +187,11 @@ export function useTerminal({ sessionId, cwd, onTitleChange }: UseTerminalOption
       const rect = entries[0]?.contentRect;
       if (rect && rect.width === 0 && rect.height === 0) return;
 
+      // Preserve scroll position — fit() can reset it when the terminal is
+      // reparented (e.g. collapsing a split back to a single pane).
+      const scrollY = termRef.current.buffer.active.viewportY;
       fitRef.current.fit();
+      termRef.current.scrollToLine(scrollY);
       const { cols: c, rows: r } = termRef.current;
 
       if (!ptyInitialized) {
@@ -236,7 +240,10 @@ export function useTerminal({ sessionId, cwd, onTitleChange }: UseTerminalOption
   }, []);
 
   const fit = useCallback(() => {
-    fitRef.current?.fit();
+    if (!fitRef.current || !termRef.current) return;
+    const scrollY = termRef.current.buffer.active.viewportY;
+    fitRef.current.fit();
+    termRef.current.scrollToLine(scrollY);
   }, []);
 
   return { attach, focus, fit };
